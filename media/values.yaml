@@ -1,0 +1,58 @@
+# -- Number of replicas to create
+replicas: 1
+
+# -- The strategy for updates
+strategyType: RollingUpdate
+
+# -- The maximum number of Pods that can be created over the desired number of `ReplicaSet` during updating
+maxSurge: 1
+
+# -- The maximum number of Pods that can be unavailable during updating
+maxUnavailable: 1
+
+# -- Container port for main container
+port: ""
+
+image:
+  # -- the repostory to pull the image from
+  repository: ""
+  # -- the docker tag, if left empty it will get it from the chart's appVersion
+  tag: ""
+  # -- the pull policy
+  pullPolicy: IfNotPresent
+
+# -- Configuration for the Ingress
+ingress:
+  # -- Generate a Ingress resource
+  enabled: true
+  # -- Subdomain
+  subdomain: ""
+  # -- Domain
+  domain: home.arpa
+  # -- Enable TLS
+  tls: true
+
+service:
+  type: ClusterIP
+  http: true
+
+# -- Resources for main container
+resources: {}
+
+# -- Configuration for VPN sidecar
+vpn:
+  enabled: false
+  resources: {}
+  secretref: nordlynx
+
+volumes:
+  downloads: false
+  movies: false
+  music: false
+  tv: false
+
+TZ: "America/New_York"
+
+pv:
+  capacity: 256Mi
+  server: 192.168.1.202

@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+    type: {{ .Values.strategyType }}
+    {{- if eq .Values.strategyType "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.maxSurge }}
+      maxUnavailable: {{ .Values.maxUnavailable }}
+    {{- end}}
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}-deployment
+        app.kubernetes.io/part-of: {{ .Release.Name }}
+    spec:
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      containers:
+      - name: {{ .Release.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        resources:
+        {{- toYaml .Values.resources | nindent 10 }}
+        ports:
+        - containerPort: {{ .Values.port }}
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: "/config"
+        {{- if .Values.volumes.downloads }}
+        - name: downloads
+          mountPath: "/downloads"
+        {{- end }}
+        {{- if .Values.volumes.movies }}
+        - name: movies
+          mountPath: "/movies"
+        {{- end }}
+        {{- if .Values.volumes.music }}
+        - name: music
+          mountPath: "/music"
+        {{- end }}
+        {{- if .Values.volumes.tv }}
+        - name: tv
+          mountPath: "/tv"
+        {{- end }}
+        env:
+        - value: "1000"
+          name: PUID
+        - value: "1000"
+          name: PGID
+        - value: {{ .Values.TZ }}
+          name: TZ
+        startupProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.port }}
+          initialDelaySeconds: 90
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.port }}
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 10
+      {{- if .Values.vpn.enabled }}
+      - name: vpn
+        image: ghcr.io/bubuntux/nordlynx
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        resources:
+        {{- toYaml .Values.vpn.resources | nindent 10 }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.vpn.secretref }}
+        env:
+        - name: DNS
+          value: "103.86.96.100, 103.86.99.100, 10.43.0.10"
+        - name: NET_LOCAL
+          value: "10.43.0.0/16, 192.168.1.0/24"
+      {{- end }}
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-config-pvc
+      {{- if .Values.volumes.downloads}}
+      - name: downloads
+        persistentVolumeClaim:
+          claimName: downloads-pvc
+      {{- end }}
+      {{- if .Values.volumes.movies}}
+      - name: movies
+        persistentVolumeClaim:
+          claimName: movies-pvc
+      {{- end }}
+      {{- if .Values.volumes.music}}
+      - name: music
+        persistentVolumeClaim:
+          claimName: music-pvc
+      {{- end }}
+      {{- if .Values.volumes.tv}}
+      - name: tv
+        persistentVolumeClaim:
+          claimName: tvshows-pvc
+      {{- end }}
