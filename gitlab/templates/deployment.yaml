@@ -23,6 +23,8 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}-deployment
         app.kubernetes.io/part-of: {{ .Release.Name }}
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: worker
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
       containers:

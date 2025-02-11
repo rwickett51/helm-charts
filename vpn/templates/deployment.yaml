@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+    type: {{ .Values.strategyType }}
+    {{- if eq .Values.strategyType "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.maxSurge }}
+      maxUnavailable: {{ .Values.maxUnavailable }}
+    {{- end}}
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}-deployment
+        app.kubernetes.io/part-of: {{ .Release.Name }}
+    spec:
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      containers:
+      - name: vpn
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: VPN_CONFIG_FILE
+          value: "config.ovpn"
+        - name: "VPN_AUTH_SECRET"
+          value: "credentials.txt"
+        - name: SUBNETS
+          value: "10.43.0.0/16, 192.168.1.0/24"
+        volumeMounts:
+        - name: vpn-config
+          mountPath: "/data/vpn"
+        - name: vpn-config
+          mountPath: "/run/secrets/credentials.txt"
+          subPath: "credentials.txt"
+          readOnly: true
+        - name: vpn-config
+          mountPath: "/run/secrets/config.ovpn"
+          subPath: "config.ovpn"
+          readOnly: true
+      volumes:
+      - name: vpn-config
+        persistentVolumeClaim:
+          claimName: vpn-config-pvc

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+    type: {{ .Values.strategyType }}
+    {{- if eq .Values.strategyType "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.maxSurge }}
+      maxUnavailable: {{ .Values.maxUnavailable }}
+    {{- end}}
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}-deployment
+        app.kubernetes.io/part-of: {{ .Release.Name }}
+    spec:
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      containers:
+      - name: {{ .Release.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        resources:
+        {{- toYaml .Values.resources | nindent 10 }}
+        ports:
+        - containerPort: {{ .Values.port }}
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /app/user-data/conf.yml
+          subPath: config.yml
+        env:
+        - value: "1000"
+          name: PUID
+        - value: "1000"
+          name: PGID
+        - value: {{ .Values.TZ }}
+          name: TZ
+        startupProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.port }}
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-config-pvc

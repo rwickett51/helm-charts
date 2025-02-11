@@ -64,37 +64,49 @@ spec:
           httpGet:
             path: /
             port: {{ .Values.port }}
-          initialDelaySeconds: 90
+          initialDelaySeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /
             port: {{ .Values.port }}
-          initialDelaySeconds: 90
+          initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 10
       {{- if .Values.vpn.enabled }}
       - name: vpn
-        image: ghcr.io/bubuntux/nordlynx
+        image: ghcr.io/wfg/openvpn-client:3.1
         securityContext:
           capabilities:
             add:
             - NET_ADMIN
-        resources:
-        {{- toYaml .Values.vpn.resources | nindent 10 }}
-        envFrom:
-        - secretRef:
-            name: {{ .Values.vpn.secretref }}
+          privileged: true
         env:
-        - name: DNS
-          value: "103.86.96.100, 103.86.99.100, 10.43.0.10"
-        - name: NET_LOCAL
+        - name: VPN_CONFIG_FILE
+          value: "config.ovpn"
+        - name: "VPN_AUTH_SECRET"
+          value: "credentials.txt"
+        - name: SUBNETS
           value: "10.43.0.0/16, 192.168.1.0/24"
+        volumeMounts:
+        - name: vpn-config
+          mountPath: "/data/vpn"
+        - name: vpn-config
+          mountPath: "/run/secrets/credentials.txt"
+          subPath: "credentials.txt"
+          readOnly: true
+        - name: vpn-config
+          mountPath: "/run/secrets/config.ovpn"
+          subPath: "config.ovpn"
+          readOnly: true
       {{- end }}
       volumes:
       - name: config
         persistentVolumeClaim:
           claimName: {{ .Release.Name }}-config-pvc
+      - name: vpn-config
+        persistentVolumeClaim:
+          claimName: vpn-config-pvc
       {{- if .Values.volumes.downloads}}
       - name: downloads
         persistentVolumeClaim:
