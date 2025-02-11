@@ -4,17 +4,21 @@ metadata:
   name: {{ .Release.Name }}-service
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}-service
-    app.kubernetes.io/part-of: {{ .Release.Name }}
+    {{- include "media.labels" . | nindent 4 }}
+  annotations:
+  {{- with .Values.service.annotations }}
+  {{- toYaml . | nindent 4 }}
+  {{- else }}
+  {}
+  {{- end }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.service.type | default "ClusterIP" }}
   selector:
-    app.kubernetes.io/name:  {{ .Release.Name }}-deployment
-    app.kubernetes.io/part-of:  {{ .Release.Name }}
+    {{- include "media.labels" . | nindent 4 }}
   ports:
-  {{- if .Values.service.http }}
-  - name: http
-    protocol: TCP
-    port: 80
-    targetPort: http
+  {{- range .Values.service.ports }}
+  - name: {{ .name | default "http" }}
+    protocol: {{ .protocol | default "TCP" }}
+    port: {{ .port | default 80 }}
+    targetPort: {{ .targetPort | default .port }}
   {{- end }}

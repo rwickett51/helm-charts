@@ -1,0 +1,16 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "volumes": {
+        "type": "object",
+        "properties": {
+          "downloads": { "type": "boolean" },
+          "movies": { "type": "boolean" },
+          "music": { "type": "boolean" },
+          "tv": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }

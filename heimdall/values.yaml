@@ -11,13 +11,13 @@ maxSurge: 1
 maxUnavailable: 1
 
 # -- Container port for main container
-port: ""
+port: "80"
 
 image:
   # -- the repostory to pull the image from
-  repository: ""
+  repository: "lscr.io/linuxserver/heimdall"
   # -- the docker tag, if left empty it will get it from the chart's appVersion
-  tag: ""
+  tag: "2.5.7"
   # -- the pull policy
   pullPolicy: IfNotPresent
 
@@ -26,7 +26,7 @@ ingress:
   # -- Generate a Ingress resource
   enabled: true
   # -- Subdomain
-  subdomain: ""
+  subdomain: heimdall
   # -- Domain
   domain: home.arpa
   # -- Enable TLS
@@ -34,23 +34,10 @@ ingress:
 
 service:
   type: ClusterIP
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "80"
-  ports:
-    - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 80
+  http: true
 
 # -- Resources for main container
 resources: {}
-
-# -- Configuration for VPN sidecar
-vpn:
-  enabled: false
-  resources: {}
-  secretref: nordlynx
 
 volumes:
   downloads: false
@@ -62,4 +49,4 @@ TZ: "America/New_York"
 
 pv:
   capacity: 256Mi
-  server: 192.168.1.214
+  server: 192.168.1.202

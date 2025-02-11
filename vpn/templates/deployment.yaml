@@ -23,33 +23,35 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}-deployment
         app.kubernetes.io/part-of: {{ .Release.Name }}
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/worker: worker
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
       containers:
-      - name: {{ .Release.Name }}
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        resources:
-        {{- toYaml .Values.resources | nindent 10 }}
-        ports:
-        - containerPort: {{ .Values.port }}
-          name: http
-          protocol: TCP
+      - name: vpn
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: VPN_CONFIG_FILE
+          value: "config.ovpn"
+        - name: "VPN_AUTH_SECRET"
+          value: "credentials.txt"
+        - name: SUBNETS
+          value: "10.43.0.0/16, 192.168.1.0/24"
         volumeMounts:
-        - name: config
-          mountPath: "/etc/gitlab"
-        - name: data
-          mountPath: "/var/opt/gitlab"
-        - name: logs
-          mountPath: "/var/log/gitlab"
+        - name: vpn-config
+          mountPath: "/data/vpn"
+        - name: vpn-config
+          mountPath: "/run/secrets/credentials.txt"
+          subPath: "credentials.txt"
+          readOnly: true
+        - name: vpn-config
+          mountPath: "/run/secrets/config.ovpn"
+          subPath: "config.ovpn"
+          readOnly: true
       volumes:
-      - name: config
+      - name: vpn-config
         persistentVolumeClaim:
-          claimName: {{ .Release.Name }}-config-pvc
-      - name: data
-        persistentVolumeClaim:
-          claimName: {{ .Release.Name }}-data-pvc
-      - name: logs
-        persistentVolumeClaim:
-          claimName: {{ .Release.Name }}-logs-pvc
+          claimName: vpn-config-pvc

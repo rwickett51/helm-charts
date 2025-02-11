@@ -4,7 +4,7 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "media.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicas }}
   strategy:
@@ -13,14 +13,15 @@ spec:
     rollingUpdate:
       maxSurge: {{ .Values.maxSurge }}
       maxUnavailable: {{ .Values.maxUnavailable }}
-    {{- end }}
+    {{- end}}
   selector:
     matchLabels:
       app.kubernetes.io/part-of: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        {{- include "media.labels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ .Release.Name }}-deployment
+        app.kubernetes.io/part-of: {{ .Release.Name }}
     spec:
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
@@ -28,45 +29,36 @@ spec:
       - name: {{ .Release.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         resources:
-          {{- toYaml .Values.resources | nindent 10 }}
+        {{- toYaml .Values.resources | nindent 10 }}
         ports:
         - containerPort: {{ .Values.port }}
           name: http
           protocol: TCP
         volumeMounts:
         - name: config
-          mountPath: "/config"
-          {{- include "media.volumeMounts" . | nindent 6 }}
+          mountPath: /app/user-data/conf.yml
+          subPath: config.yml
         env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: TZ
-          value: {{ .Values.TZ }}
+        - value: "1000"
+          name: PUID
+        - value: "1000"
+          name: PGID
+        - value: {{ .Values.TZ }}
+          name: TZ
         startupProbe:
           httpGet:
             path: /
             port: {{ .Values.port }}
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /
             port: {{ .Values.port }}
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 10
-      {{- if .Values.vpn.enabled }}
-        {{- include "media.vpn.container" . | nindent 6 }}
-      {{- end }}
       volumes:
       - name: config
         persistentVolumeClaim:
           claimName: {{ .Release.Name }}-config-pvc
-        {{- if .Values.vpn.enabled }}
-      - name: vpn-config
-        persistentVolumeClaim:
-          claimName: vpn-config-pvc
-        {{- end }}
-        {{- include "media.volumes" . | nindent 4 }}

@@ -11,22 +11,22 @@ maxSurge: 1
 maxUnavailable: 1
 
 # -- Container port for main container
-port: ""
+port: "80"
 
 image:
   # -- the repostory to pull the image from
-  repository: ""
+  repository: "ghcr.io/wfg/openvpn-client"
   # -- the docker tag, if left empty it will get it from the chart's appVersion
-  tag: ""
+  tag: "3.1"
   # -- the pull policy
   pullPolicy: IfNotPresent
 
 # -- Configuration for the Ingress
 ingress:
   # -- Generate a Ingress resource
-  enabled: true
+  enabled: false
   # -- Subdomain
-  subdomain: ""
+  subdomain: vpn
   # -- Domain
   domain: home.arpa
   # -- Enable TLS
@@ -34,32 +34,13 @@ ingress:
 
 service:
   type: ClusterIP
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "80"
-  ports:
-    - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 80
+  http: true
 
 # -- Resources for main container
 resources: {}
-
-# -- Configuration for VPN sidecar
-vpn:
-  enabled: false
-  resources: {}
-  secretref: nordlynx
-
-volumes:
-  downloads: false
-  movies: false
-  music: false
-  tv: false
 
 TZ: "America/New_York"
 
 pv:
   capacity: 256Mi
-  server: 192.168.1.214
+  server: 192.168.1.202
